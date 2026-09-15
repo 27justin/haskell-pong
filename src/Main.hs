@@ -20,7 +20,7 @@ ballSpeedIncrease :: Float
 ballSpeedIncrease = 0.1
 
 movementSpeed :: Float
-movementSpeed = 180.0
+movementSpeed = 240.0
 
 paddleSize :: Int
 paddleSize = 80
@@ -49,8 +49,8 @@ zipPairScalar f (a, b) scalar = (f a scalar, f b scalar)
 applyPair :: (a -> b) -> (a, a) -> (b, b)
 applyPair f (a, b) = (f a, f b)
 
-ballApplyVelocity :: Float -> Ball -> Game -> Ball
-ballApplyVelocity dt b g =
+ballApplyVelocity :: Float -> Ball ->  Ball
+ballApplyVelocity dt b =
   b{
   ballPosition = zipPair (+)
                  (ballPosition b)
@@ -129,7 +129,7 @@ clampPaddles (_, screenH) game =
 
 updateBall :: Float -> (Int, Int) -> Game -> Game
 updateBall dt screen game =
-  case bounceBall screen (ballApplyVelocity dt (ball game) game) game of
+  case bounceBall screen (ballApplyVelocity dt $ ball game) game of
     ball -> game { ball = ball }
 
 bounceBall :: (Int, Int) -> Ball -> Game -> Ball
