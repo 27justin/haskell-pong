@@ -77,4 +77,4 @@ executable pong
     hs-source-dirs:   src
 
     -- Base language which the package is written in.
-    default-language: GHC2021
+    default-language: Haskell2010
