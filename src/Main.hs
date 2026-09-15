@@ -16,6 +16,9 @@ ballSize = 12
 halfBall :: Float
 halfBall = fromIntegral (ballSize `div` 2)
 
+ballSpeedIncrease :: Float
+ballSpeedIncrease = 0.1
+
 movementSpeed :: Float
 movementSpeed = 180.0
 
@@ -46,12 +49,12 @@ zipPairScalar f (a, b) scalar = (f a scalar, f b scalar)
 applyPair :: (a -> b) -> (a, a) -> (b, b)
 applyPair f (a, b) = (f a, f b)
 
-ballApplyVelocity :: Float -> Ball -> Ball
-ballApplyVelocity dt g =
-  g{
+ballApplyVelocity :: Float -> Ball -> Game -> Ball
+ballApplyVelocity dt b g =
+  b{
   ballPosition = zipPair (+)
-                 (ballPosition g)
-                 (zipPairScalar (*) (ballVelocity g) dt)
+                 (ballPosition b)
+                 (zipPairScalar (*) (ballVelocity b) dt)
       }
 
 data Game =
@@ -126,9 +129,8 @@ clampPaddles (_, screenH) game =
 
 updateBall :: Float -> (Int, Int) -> Game -> Game
 updateBall dt screen game =
-  game
-    { ball = bounceBall screen (ballApplyVelocity dt (ball game)) game
-    }
+  case bounceBall screen (ballApplyVelocity dt (ball game) game) game of
+    ball -> game { ball = ball }
 
 bounceBall :: (Int, Int) -> Ball -> Game -> Ball
 bounceBall screenDim ball g =
@@ -154,11 +156,11 @@ bounceBall screenDim ball g =
           ((leftY, _), PlayerLeft)
             | y >= (leftY - paddleSize)
               && y < leftY + paddleSize
-              && abs (x - leftGoal - halfBall) <= paddleWidth -> ball { ballVelocity = (negate vx, vy) }
+              && abs (x - leftGoal - halfBall) <= paddleWidth -> ball { ballVelocity = zipPairScalar (*) (negate vx, vy) $ 1.0 + ballSpeedIncrease }
           ((_, rightY), PlayerRight)
             | y >= (rightY - paddleSize)
               && y < rightY + paddleSize
-              && abs (x - rightGoal + halfBall) <= paddleWidth -> ball { ballVelocity = (negate vx, vy) }
+              && abs (x - rightGoal + halfBall) <= paddleWidth -> ball { ballVelocity = zipPairScalar (*) (negate vx, vy) $ 1.0 + ballSpeedIncrease }
           _ -> ball
 
   where
@@ -181,7 +183,8 @@ bounceBall screenDim ball g =
 
 resetBall :: Game -> Game
 resetBall g = g {
-  ball = Ball { ballPosition = (0.0, 0.0), ballVelocity = settingBallVelocity }}
+  ball = Ball { ballPosition = (0.0, 0.0), ballVelocity = settingBallVelocity }
+  }
 
 addScore :: Player -> Game -> Game
 addScore side game =
