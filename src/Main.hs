@@ -1,13 +1,12 @@
 module Main (main) where
 
-import Data.Function ((&))
-import Raylib.Core        (beginDrawing, clearBackground, closeWindow,
-                           endDrawing, initWindow, isKeyDown,
-                           setTargetFPS, windowShouldClose, getRenderWidth, getRenderHeight, getFrameTime)
+import Raylib.Core        (beginDrawing, clearBackground, endDrawing,
+                           initWindow, isKeyDown, setTargetFPS,
+                           windowShouldClose, getRenderWidth, getRenderHeight, getFrameTime)
 import Raylib.Core.Shapes      (drawRectangle)
 import Raylib.Core.Text        (drawText, drawFPS)
 import Raylib.Types.Core  (KeyboardKey (..))
-import Raylib.Util.Colors (black, darkGray, gray, rayWhite)
+import Raylib.Util.Colors (rayWhite, black)
 
 settingBallVelocity :: (Float, Float)
 settingBallVelocity = (160.0, 120.0)
@@ -29,7 +28,7 @@ paddleWidth = 10
 goalSize :: Int
 goalSize = 15
 
-data State = Paused | Running | Exit | ChooseAbility deriving (Eq)
+data State = Paused | Running | Exit deriving (Eq)
 data Player = PlayerLeft | PlayerRight
 
 data Ball =
@@ -96,8 +95,8 @@ withDrawing f = do
   f
   endDrawing
 
-updatePaddle :: Float -> (Int, Int) -> Input -> Player -> Game -> Game
-updatePaddle dt dim input side g =
+updatePaddle :: Float -> Input -> Player -> Game -> Game
+updatePaddle dt input side g =
   let (up, down) = case side of
         PlayerLeft -> (p1Up input, p1Down input)
         PlayerRight -> (p2Up input, p2Down input)
@@ -114,7 +113,7 @@ updatePaddle dt dim input side g =
 
 
 clampPaddles :: (Int, Int) -> Game -> Game
-clampPaddles (screenW, screenH) game =
+clampPaddles (_, screenH) game =
   game {
   playerPosition = case (playerPosition game) of
       (left, right) -> (max topBound (min bottomBound left), max topBound (min bottomBound right))
@@ -197,7 +196,7 @@ addScore side game =
 checkWinCondition :: (Int, Int) -> Game -> Game
 checkWinCondition dim g =
   case ballPosition (ball g) of
-    (x, y) | x < leftGoal -> (resetBall . addScore PlayerRight) g
+    (x, _) | x < leftGoal -> (resetBall . addScore PlayerRight) g
            | x > rightGoal -> (resetBall . addScore PlayerLeft) g
            | otherwise -> g
   where
@@ -214,11 +213,12 @@ updateGame dt dim input g =
       else
         (checkWinCondition dim
        . updateBall dt dim
-       . updatePaddle dt dim input PlayerLeft
-       . updatePaddle dt dim input PlayerRight
+       . updatePaddle dt input PlayerLeft
+       . updatePaddle dt input PlayerRight
        . clampPaddles dim
        ) g
     Paused -> if pause input then g{state = Running} else g
+    Exit -> g
 
 position :: (Float, Float) -> (Int, Int) -> (Int, Int)
 position (posX, posY) (screenW, screenH) = (screenW `div` 2 + round(posX), screenH `div` 2 + round(posY))
@@ -235,7 +235,7 @@ drawGame game = withDrawing $ do
     Exit -> pure ()
     s | s == Running || s == Paused -> do
       screenSize <- getScreenSize
-      let (halfX, halfY) = applyPair (fromIntegral) (zipPairScalar (div) screenSize 2)
+      let (halfX, _) = applyPair (fromIntegral) (zipPairScalar (div) screenSize 2)
       -- Ball
       case position (ballPosition (ball game)) screenSize of
         (x, y) -> drawRectangle (x - ballSize `div` 2) (y - ballSize `div` 2) ballSize ballSize rayWhite
@@ -260,7 +260,7 @@ drawScore dim game = do
   case (scores game) of
     (left, right) -> drawText (show left ++ " : " ++ show right) halfX 0 32 rayWhite
   where
-    (halfX, halfY) = zipPairScalar (div) dim 2
+    (halfX, _) = zipPairScalar (div) dim 2
 
 
 runGame :: Game -> IO ()
@@ -281,8 +281,9 @@ runGame game = do
 
 main :: IO ()
 main = do
-  initWindow 600 400 "Pong"
+  _ <- initWindow 600 400 "Pong"
+  setTargetFPS 144
 
   let game = initGame
   runGame game
-  putStrLn "Exit"
+
